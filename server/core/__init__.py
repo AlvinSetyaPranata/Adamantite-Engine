@@ -4,7 +4,7 @@ import threading
 import os
 import socket
 import select
-from .handler import Request_Abstract
+from .handler import Request
 
 
 # consts
@@ -167,7 +167,7 @@ class Server(socket.socket, Base_Manager):
                         continue
 
                     if callable(self.callback):
-                        self.callback(self, Request_Abstract(header_, incoming_socket[0]))
+                        self.callback(self, Request(header_, incoming_socket[0]))
 
 
             except KeyboardInterrupt:
