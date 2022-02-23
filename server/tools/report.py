@@ -11,11 +11,17 @@ init()
 
 class Log:
     def __init__(self, log_level=logging.DEBUG, name="SYSTEM"):
+        self.path_ = ""
+        
+        self.init_check()
+        
         self.log_level = log_level
         self.log_ = logging.getLogger(name)
         self.log_.setLevel(self.log_level)
         self.log_.addHandler(self.get_file_handler())
    
+
+
     @property
     def debug(self):
         return colored("DEBUG", "white"), self.log_.debug
@@ -37,7 +43,7 @@ class Log:
         return colored("CRITICAL", "grey"), self.log_.critical
 
 
-    def get_file_handler(self, fname=datetime.datetime.now().strftime('%d-%m-%Y-%H:%M.log')):
+    def get_file_handler(self, fname=os.path.join("logs", datetime.datetime.now().strftime('%d-%m-%Y-%H:%M.log'))):
         f_handler = logging.FileHandler(fname, mode="w+")
         f_format = logging.Formatter("%(asctime)s:%(name)s:%(levelname)s => %(message)s")
         f_handler.setFormatter(f_format)
@@ -64,6 +70,7 @@ class Log:
         4. error => red mark
         5. critical => lightred mark
         """
+
 
         exception_type[1](message)
         message = datetime.datetime.now().strftime("[%a, %b-%Y %H:%M]") + f"[{exception_type[0]}]> " + message
