@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import re
 
 class Response:
@@ -10,12 +11,27 @@ class Response:
             "Connection" : "closed",
         }
 
-    def add(self, param_name, value):
+    def get_value(self, name):
+        """
+        Return a attribute value of a response header from given name
+        """
+
+        if not name in self.__header_:
+            return
+
+        return self.__header_[name]
+
+
+    def add_response_header(self, param_name, value):
         self.__header_[param_name] = value
 
     @property
     def get_header(self):
         return self.__header_
+
+    @classmethod
+    def generate_etag(self, content, hashmethod=hashlib.sha256):
+        return hashmethod(content).digest()
 
 
 
@@ -25,15 +41,19 @@ class Request(Response):
         
         self.header = header
         self.request_line = self.header.split("\n")[0]
-        self.request_headers = self.header.split("\n")[1]
+        self.request_headers = self.header.split("\n")[1:-2]
         self.request_body = self.header.split("\n")[-1]
 
+        self.header_fields = {}
+
         self.get_method_pattern = re.compile(r"[\?]?\w*=\w*[\&]?")
-        self.post_method_pattern = re.compile(r"")
         
         self.socket_ = socket_
+        
 
-        # print(self.request_body)
+        for field in self.request_headers:
+            key, value = field.strip("\r").split(":", maxsplit=1)
+            self.header_fields[key] = value
 
     @property
     def get_protocol(self):
@@ -62,15 +82,19 @@ class Request(Response):
 
         elif self.get_method == "GET":
             get_data = self.request_line.split()[1]
+            key, val = None, None
 
-            for match in self.get_method_pattern.finditer():
+            for match in self.get_method_pattern.finditer(get_data):
                 start_, end_ = match.span()
 
-                if start_ == "?":
+                if get_data[start_] == "?":
                     start_ += 1
 
-                if end_-1 == "&":
+                if get_data[end_-1] == "&":
                     end_ -= 1
+
+
+                key, val = get_data[start_:end_].split("=")
 
                 key = key.replace("%26", "&")
                 val = val.replace("%26", "&")

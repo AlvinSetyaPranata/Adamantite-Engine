@@ -8,4 +8,6 @@ class Handle:
         with open(file_path, "r") as f:
             return f.read(), "200"
 
+    def get_assets(self):
+        pass
             
