@@ -2,18 +2,43 @@ import datetime
 import hashlib
 import re
 
-class Response:
+
+
+STATUS_CODE_ABREVIATIONS = {
+    "200" : "OK",
+    "404" : "Not Found"
+}
+
+
+class HttpResponse:
+    # Meta Data
+
+    __abreviation = ""
+    __protocol_ = ""
+    __status_code = ""
+
     def __init__(self):
         self.__header_ = {
             "Date" : datetime.datetime.utcnow().strftime("%a, %d %B %Y, %H:%M:%S GMT"),
-            "Server" : "Adamantite Engine v0.1 Beta",
-            "Content-Encoding" : "gzip",
-            "Connection" : "closed",
+            "Server" : "Adamantite-Engine v0.1 Beta",
         }
+        
+        self.__body = ""
 
-    def get_value(self, name):
+    
+    def set_response_line(self, status_code, protocol_type):
+        self.__status_code = status_code
+        self.__protocol_ = protocol_type
+        self.__abreviation = STATUS_CODE_ABREVIATIONS[str(status_code)]
+
+
+    def __str__(self):
+        return f"<ResponseObject at {hex(id(self))}>"
+
+
+    def get_header_value(self, name):
         """
-        Return a attribute value of a response header from given name
+        Return attribute value of response header from given name
         """
 
         if not name in self.__header_:
@@ -22,20 +47,46 @@ class Response:
         return self.__header_[name]
 
 
-    def add_response_header(self, param_name, value):
-        self.__header_[param_name] = value
+    def add_response_header(self, params):
+        for param in params:
+            self.__header_[param] = str(params[param])
 
+    
     @property
     def get_header(self):
         return self.__header_
 
+
+    @property
+    def construct_headers(self):
+        """
+        called when get_response called
+        """
+        header = ""
+
+        for field in self.__header_:
+            header += f"{field}: {self.__header_[field]}\n"
+
+        return header
+
+
+    @property
+    def get_response(self):
+        if not all((self.__protocol_, self.__status_code, self.__abreviation)):
+            raise Exception("Cannot construct response with empty or invalid response line, check again if you set protocol, status_code, abreviation, properly")
+
+        return f"{self.__protocol_} {self.__status_code} {self.__abreviation}\n{self.construct_headers}\n\n{self.__body}"
+
+
     @classmethod
-    def generate_etag(self, content, hashmethod=hashlib.sha256):
-        return hashmethod(content).digest()
+    def add_etag(self, content, hashmethod=hashlib.sha256):
+        if not type(content) is bytes:
+            content = content.encode()
+
+        return {"ETag" : hashmethod(content).hexdigest()}
 
 
-
-class Request(Response):
+class HttpRequest:
     def __init__(self, header, socket_):
         super().__init__()
         
@@ -49,11 +100,15 @@ class Request(Response):
         self.get_method_pattern = re.compile(r"[\?]?\w*=\w*[\&]?")
         
         self.socket_ = socket_
-        
+        self.response_object = HttpResponse()
 
         for field in self.request_headers:
             key, value = field.strip("\r").split(":", maxsplit=1)
             self.header_fields[key] = value
+
+    def __str__(self):
+        return f"<RequestObject at {id(self)}>"
+
 
     @property
     def get_protocol(self):
@@ -106,6 +161,5 @@ class Request(Response):
 
 
             
-
-
-    
+if __name__ == "__main__":
+    d = HttpRequest()

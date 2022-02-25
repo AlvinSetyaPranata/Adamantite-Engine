@@ -9,6 +9,8 @@ import os
 
 init()
 
+
+
 class Log:
     def __init__(self, log_level=logging.DEBUG, name="SYSTEM"):
         self.path_ = ""

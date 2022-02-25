@@ -2,3 +2,6 @@
 */**/__pycache__
 logs
 test
+*.txt
+*.db
+run.py
