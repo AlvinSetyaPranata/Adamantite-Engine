@@ -1,38 +1,47 @@
 import datetime
 import hashlib
 import re
+import os
+from adamantite.engine.tools.default_settings import STATUS_CODE_ABREVIATIONS
 
-
-
-STATUS_CODE_ABREVIATIONS = {
-    "200" : "OK",
-    "404" : "Not Found"
-}
 
 
 class HttpResponse:
-    # Meta Data
 
-    __abreviation = ""
-    __protocol_ = ""
-    __status_code = ""
 
     def __init__(self):
-        self.__header_ = {
-            "Date" : datetime.datetime.utcnow().strftime("%a, %d %B %Y, %H:%M:%S GMT"),
-            "Server" : "Adamantite-Engine v0.1 Beta",
-        }
-        
+        self.__header_ = {}
         self.__body = ""
-
+        self.__abreviation = ""
+        self.__protocol_ = ""
+        self.__status_code = ""
     
     def set_response_line(self, status_code, protocol_type):
         self.__status_code = status_code
         self.__protocol_ = protocol_type
-        self.__abreviation = STATUS_CODE_ABREVIATIONS[str(status_code)]
+        self.__abreviation = STATUS_CODE_ABREVIATIONS[status_code]
+
+        # print('asdasdas = ', self.__status_code, self.__protocol_, self.__abreviation, "\n\n\n\n")
+
+
+    def set_content(self, content):
+        self.__body = content
+        # print(self.__body)
+        
+
+    def modify_response_line(self, key, value):
+        if key == "protocol":
+            self.__protocol_ = value
+
+        elif key == "status_code":
+            self.__status_code = value
+            self.__abreviation = STATUS_CODE_ABREVIATIONS[str(value)]
 
 
     def __str__(self):
+        return self.get_response
+
+    def __repr__(self):
         return f"<ResponseObject at {hex(id(self))}>"
 
 
@@ -47,7 +56,18 @@ class HttpResponse:
         return self.__header_[name]
 
 
+    def remove_response_header(self, *params):
+        for param in params:
+            if param in self.__header_:
+                del self.__header_[param]
+
+
     def add_response_header(self, params):
+        """
+        :params must be in dict type
+
+        also can be use to change the header field value
+        """
         for param in params:
             self.__header_[param] = str(params[param])
 
@@ -75,39 +95,39 @@ class HttpResponse:
         if not all((self.__protocol_, self.__status_code, self.__abreviation)):
             raise Exception("Cannot construct response with empty or invalid response line, check again if you set protocol, status_code, abreviation, properly")
 
-        return f"{self.__protocol_} {self.__status_code} {self.__abreviation}\n{self.construct_headers}\n\n{self.__body}"
+        return f"{self.__protocol_} {self.__status_code} {self.__abreviation}\n{self.construct_headers}\n{self.__body}"
 
 
-    @classmethod
-    def add_etag(self, content, hashmethod=hashlib.sha256):
-        if not type(content) is bytes:
-            content = content.encode()
-
-        return {"ETag" : hashmethod(content).hexdigest()}
 
 
 class HttpRequest:
-    def __init__(self, header, socket_):
-        super().__init__()
-        
-        self.header = header
+    def __init__(self, header_):        
+        self.header = header_
+
         self.request_line = self.header.split("\n")[0]
         self.request_headers = self.header.split("\n")[1:-2]
         self.request_body = self.header.split("\n")[-1]
-
         self.header_fields = {}
-
         self.get_method_pattern = re.compile(r"[\?]?\w*=\w*[\&]?")
-        
-        self.socket_ = socket_
-        self.response_object = HttpResponse()
+
 
         for field in self.request_headers:
             key, value = field.strip("\r").split(":", maxsplit=1)
-            self.header_fields[key] = value
+            self.header_fields[key] = value.strip()
 
     def __str__(self):
-        return f"<RequestObject at {id(self)}>"
+        return f"<RequestObject at {hex(id(self))}>"
+
+    def __repr__(self):
+        return  f"<RequestObject at {hex(id(self))}>"
+
+
+    @property
+    def is_valid(self):
+        if not self.header:
+            return False
+
+        return all((self.request_line ,self.request_headers))
 
 
     @property
@@ -160,6 +180,3 @@ class HttpRequest:
         return data
 
 
-            
-if __name__ == "__main__":
-    d = HttpRequest()

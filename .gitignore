@@ -1,7 +1,10 @@
 *.log
-*/**/__pycache__
+__pycache__/
+*/**/__pycache__/
 logs
-test
+trash/
+examples/
 *.txt
 *.db
 run.py
+testing.py
